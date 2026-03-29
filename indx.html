@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>升学助手 | 智慧升学</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background: linear-gradient(145deg, #c8e8ff 0%, #e0f3ff 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(18px);
+            border-radius: 32px;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.65);
+            transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+        .btn-primary, .btn-outline {
+            background: rgba(44, 125, 160, 0.85);
+            border: none;
+            border-radius: 60px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .btn-primary:active, .btn-outline:active { transform: scale(0.96); }
+        .btn-outline {
+            background: rgba(255, 255, 245, 0.8);
+            color: #2c7da0;
+            border: 1px solid #2c7da0;
+        }
+        .input-box, .select-box {
+            background: rgba(255, 255, 245, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 60px;
+            padding: 14px 18px;
+            font-size: 16px;
+            color: #1e3a4d;
+            width: 100%;
+            margin-bottom: 14px;
+            outline: none;
+        }
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            background: linear-gradient(145deg, #c8e8ff 0%, #e0f3ff 100%);
+            padding: 20px;
+        }
+        .login-card {
+            width: 90%;
+            max-width: 360px;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        .app-container {
+            display: none;
+            padding: 12px 16px 80px 16px;
+            min-height: 100vh;
+        }
+        .carousel {
+            width: 100%;
+            height: 160px;
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .carousel img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        .carousel img.active { opacity: 1; }
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .active-page { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            background: rgba(255, 250, 240, 0.8);
+            backdrop-filter: blur(22px);
+            border-radius: 40px;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 12px;
+            z-index: 90;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px 0;
+            border-radius: 32px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #3a6b8c;
+        }
+        .nav-item.active {
+            background: rgba(44,125,160,0.3);
+            color: #1f5068;
+        }
+        .my-float {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 215, 170, 0.9);
+            backdrop-filter: blur(14px);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            z-index: 95;
+            font-weight: bold;
+            font-size: 18px;
+            color: #b45f2b;
+            border: 1px solid white;
+            cursor: pointer;
+        }
+        .history-item, .teacher-card {
+            background: rgba(255,255,245,0.65);
+            border-radius: 24px;
+            padding: 12px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(4px);
+        }
+        .teacher-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 28px;
+            object-fit: cover;
+        }
+        .flex-row { display: flex; gap: 12px; align-items: center; }
+        .quiz-question {
+            background: rgba(255,250,235,0.7);
+            border-radius: 24px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        .floating-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-glass {
+            width: 88%;
+            max-width: 360px;
+            max-height: 80vh;
+            overflow-y: auto;
+            background: rgba(255, 255, 248, 0.96);
+            backdrop-filter: blur(30px);
+            border-radius: 48px;
+            padding: 24px 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .school-list {
+            margin-top: 8px;
+            padding-left: 16px;
+            border-left: 2px solid #2c7da0;
+            word-break: break-word;
+        }
+        .school-item {
+            padding: 4px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .disabled-input { pointer-events: none; opacity: 0.6; }
+        small { color: #4a6e7c; }
+        i { margin-right: 6px; }
+        .subject-filter-btn {
+            background: rgba(255,255,240,0.7);
+            border-radius: 30px;
+            padding: 8px 16px;
+            margin-right: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .subject-filter-btn.active-sub {
+            background: #2c7da0;
+            color: white;
+        }
+        .strategy-btn {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            cursor: pointer;
+            background: rgba(255,255,245,0.7);
+            border-radius: 24px;
+            padding: 10px 12px;
+        }
+        .expand-icon { transition: transform 0.2s; }
+        .expanded .expand-icon { transform: rotate(180deg); }
+    </style>
+</head>
+<body>
+
+<!-- 登录页面 -->
+<div id="loginContainer" class="login-container">
+    <div class="glass-card login-card">
+        <h2 style="margin-bottom:24px"><i class="fas fa-graduation-cap"></i> 升学助手</h2>
+        <input type="tel" id="loginPhone" class="input-box" placeholder="请输入电话 (11位数字)" maxlength="11">
+        <input type="password" id="loginPwd" class="input-box" placeholder="请输入密码">
+        <button id="loginBtn" class="btn-primary" style="width:100%; margin-bottom:12px">登录</button>
+        <button id="registerBtn" class="btn-outline" style="width:100%">注册</button>
+        <div id="loginErrorMsg" style="color:#c0392b; margin-top:12px; font-size:13px"></div>
+    </div>
+</div>
+
+<!-- 客户端主界面 -->
+<div id="appContainer" class="app-container">
+    <div id="cepingPage" class="page active-page">
+        <div class="carousel glass-card" id="honorCarousel"></div>
+        <div class="glass-card" style="padding:20px; margin-bottom:20px">
+            <h3 style="margin-bottom:14px"><i class="fas fa-chart-line"></i> 升学分析</h3>
+            <select id="provinceSelect" class="select-box"><option value="">请选择省份/直辖市</option></select>
+            <select id="citySelect" class="select-box" style="display:none"><option value="">请先选择省份</option></select>
+            <select id="stageSelect" class="select-box"><option value="">学段</option><option value="小学">小学</option><option value="初中">初中</option><option value="高中">高中</option></select>
+            <input type="text" id="autoTarget" class="select-box" placeholder="升学目标" readonly>
+            <input type="text" id="scoreInput" class="input-box" placeholder="填写分数 (例: 620)">
+            <div id="subjectGroup" style="display:none"><select id="subjectSelect" class="select-box"><option value="理综">理综</option><option value="文综">文综</option><option value="艺体">艺体</option></select></div>
+            <button id="submitAnalysisBtn" class="btn-primary" style="display:none">📤 提交升学分析</button>
+        </div>
+        <div class="glass-card" style="padding:20px">
+            <h3><i class="fas fa-pencil-alt"></i> 学习测评</h3>
+            <select id="gradeSelect" class="select-box"><option value="">选择年级</option></select>
+            <select id="subjectExamSelect" class="select-box"><option value="">选择科目</option></select>
+            <button id="startExamBtn" class="btn-primary" style="display:none">📝 开始测评组卷</button>
+        </div>
+    </div>
+    <div id="reservePage" class="page">
+        <div class="glass-card" style="padding:20px">
+            <h3><i class="fas fa-calendar-alt"></i> 试课预约</h3>
+            <div id="subjectFilter" style="display:flex; gap:12px; margin:16px 0; flex-wrap:wrap">
+                <button data-sub="小学" class="subject-filter-btn btn-outline">小学</button>
+                <button data-sub="初中" class="subject-filter-btn btn-outline">初中</button>
+                <button data-sub="高中" class="subject-filter-btn btn-outline">高中</button>
+            </div>
+            <div id="teacherListArea"></div>
+            <input type="date" id="appointDate" class="input-box" placeholder="请选择日期">
+            <select id="appointTimeSlot" class="select-box">
+                <option value="">请选择时段</option>
+                <option value="08:00-10:00">08:00 - 10:00</option>
+                <option value="09:00-11:00">09:00 - 11:00</option>
+                <option value="10:00-12:00">10:00 - 12:00</option>
+                <option value="14:00-16:00">14:00 - 16:00</option>
+                <option value="15:00-17:00">15:00 - 17:00</option>
+            </select>
+            <input type="text" id="campusAddr" class="input-box" value="贵阳市云岩区响叮当课后成长中心" readonly>
+            <button id="doReserveBtn" class="btn-primary">✨ 立刻预约</button>
+        </div>
+    </div>
+    <div id="myPage" class="page">
+        <div class="glass-card" style="padding:20px; position:relative">
+            <i class="fas fa-times-circle" id="closeMyPage" style="position:absolute; right:20px; top:20px; font-size:24px; color:gray; cursor:pointer"></i>
+            <h3><i class="fas fa-user-circle"></i> 我的学迹</h3>
+            <div style="margin-top:16px">
+                <div class="btn-outline history-trigger" data-type="shengxue" style="margin-bottom:14px">📚 我的升学测评</div>
+                <div id="shengxueHistoryList" class="history-container" style="display:none"></div>
+                <div class="btn-outline history-trigger" data-type="exam" style="margin-bottom:14px">📋 我的组卷测评</div>
+                <div id="examHistoryList" class="history-container" style="display:none"></div>
+                <div class="btn-outline history-trigger" data-type="reserve" style="margin-bottom:14px">📅 我的预约记录</div>
+                <div id="reserveHistoryList" class="history-container" style="display:none"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <div class="nav-item" data-nav="ceping"><i class="fas fa-chart-simple"></i> 测评</div>
+    <div class="nav-item" data-nav="reserve"><i class="fas fa-calendar-check"></i> 试课预约</div>
+</div>
+<div class="my-float" id="myFloatBtn"><i class="fas fa-user"></i> 我的</div>
+
+<script>
+    // ==================== Supabase 配置 ====================
+    const SUPABASE_URL = 'https://snpgstybvjpktaulbsov.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNucGdzdHlidmpwa3RhdWxic292Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQ2MTgsImV4cCI6MjA5MDMyMDYxOH0.3m3DEcslIc4UDx4RBDj9jl6knVT3KefqzGBY0ojE0iI';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let loginAttempts = 0;
+    let lockUntil = 0;
+
+    // ---------- 豆包大模型配置 ----------
+    const DOUBAO_API_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+    const DOUBAO_API_KEY = '2939d3cf-ac10-4095-8f22-e67a0e348128';
+    const MODEL_NAME = 'doubao-1-5-lite-32k-250115';
+    async function callDoubao(messages, temperature = 0.7) {
+        const response = await fetch(DOUBAO_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DOUBAO_API_KEY}` },
+            body: JSON.stringify({ model: MODEL_NAME, messages, temperature, max_tokens: 2000 })
+        });
+        if (!response.ok) throw new Error(`API请求失败 (${response.status})`);
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
+
+    // ---------- 辅助函数 ----------
+    function showAlert(msg) {
+        const modal = document.createElement('div');
+        modal.className = 'floating-modal';
+        modal.innerHTML = `<div class="modal-glass"><p>${msg}</p><button class="btn-primary" id="alertClose">关闭</button></div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('#alertClose').onclick = () => modal.remove();
+    }
+    function showLoading(message) {
+        const modal = document.createElement('div');
+        modal.className = 'floating-modal';
+        modal.id = 'loadingModal';
+        modal.innerHTML = `<div class="modal-glass" style="text-align:center"><i class="fas fa-spinner fa-pulse" style="font-size:24px; margin-bottom:12px; display:block"></i><p>${message}</p></div>`;
+        document.body.appendChild(modal);
+        return modal;
+    }
+    function hideLoading() {
+        const modal = document.getElementById('loadingModal');
+        if (modal) modal.remove();
+    }
+
+    // ---------- 数据操作（Supabase） ----------
+    async function loadHonorImages() {
+        const { data, error } = await supabase.from('honor_images').select('*').order('sort_order');
+        if (error) throw error;
+        return data;
+    }
+    async function loadTeachers() {
+        const { data, error } = await supabase.from('teachers').select('*');
+        if (error) throw error;
+        return data;
+    }
+    async function savePhoneRecord(phone, detail, source) {
+        const { error } = await supabase.from('phone_records').insert([{ phone, detail, source, user_id: currentUser?.id }]);
+        if (error) throw error;
+    }
+    async function saveShengxueHistory(history) {
+        const { error } = await supabase.from('shengxue_history').insert([{ ...history, user_id: currentUser.id }]);
+        if (error) throw error;
+    }
+    async function getShengxueHistory() {
+        const { data, error } = await supabase.from('shengxue_history').select('*').eq('user_id', currentUser.id).order('time', { ascending: false });
+        if (error) throw error;
+        return data;
+    }
+    async function saveExamHistory(exam) {
+        const { error } = await supabase.from('exam_history').insert([{ ...exam, user_id: currentUser.id }]);
+        if (error) throw error;
+    }
+    async function getExamHistory() {
+        const { data, error } = await supabase.from('exam_history').select('*').eq('user_id', currentUser.id).order('time', { ascending: false });
+        if (error) throw error;
+        return data;
+    }
+    async function saveReserveHistory(reserve) {
+        const { error } = await supabase.from('reserve_history').insert([{ ...reserve, user_id: currentUser.id }]);
+        if (error) throw error;
+    }
+    async function getReserveHistory() {
+        const { data, error } = await supabase.from('reserve_history').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
+        if (error) throw error;
+        return data;
+    }
+
+    // ---------- 渲染 ----------
+    function renderHonorCarousel(imgs) {
+        const container = document.getElementById('honorCarousel');
+        if (!container) return;
+        container.innerHTML = '';
+        imgs.forEach((src, idx) => {
+            const img = document.createElement('img');
+            img.src = src.image_url || src;
+            img.classList.add(idx === 0 ? 'active' : '');
+            container.appendChild(img);
+        });
+        if (window.carouselInterval) clearInterval(window.carouselInterval);
+        let current = 0;
+        window.carouselInterval = setInterval(() => {
+            const slides = container.querySelectorAll('img');
+            if (slides.length) { slides[current].classList.remove('active'); current = (current + 1) % slides.length; slides[current].classList.add('active'); }
+        }, 2800);
+    }
+
+    function renderTeacherBySubject(subject) {
+        const teachers = window.teachersData || [];
+        const filtered = teachers.filter(t => t.subject === subject);
+        const area = document.getElementById('teacherListArea');
+        area.innerHTML = '';
+        filtered.forEach(t => {
+            const card = document.createElement('div');
+            card.className = 'teacher-card glass-card';
+            card.style.padding = '12px';
+            card.innerHTML = `<div class="flex-row"><img src="${t.avatar_url}" class="teacher-avatar"><div><strong>${t.name}</strong><br><small>${t.intro}</small></div><input type="radio" name="selTeacher" value="${t.id}" style="margin-left:auto"></div>`;
+            area.appendChild(card);
+        });
+    }
+
+    // ---------- 登录注册 ----------
+    async function doLogin() {
+        if (Date.now() < lockUntil) {
+            showAlert(`登录失败次数过多，请 ${Math.ceil((lockUntil - Date.now())/60000)} 分钟后重试`);
+            return;
+        }
+        const phone = document.getElementById('loginPhone').value.trim();
+        const password = document.getElementById('loginPwd').value;
+        if (!phone || !password) { showAlert('请填写手机号和密码'); return; }
+        if (!/^\d{11}$/.test(phone)) { showAlert('手机号必须为11位数字'); return; }
+
+        // 特殊校长端入口
+        if (phone === 'admin' && password === 'admin123') {
+            openAdminWindow();
+            return;
+        }
+
+        // 使用 Supabase Auth 登录（邮箱形式）
+        const email = `${phone}@example.com`;
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            loginAttempts++;
+            if (loginAttempts >= 5) {
+                lockUntil = Date.now() + 5 * 60 * 1000;
+                showAlert('密码错误已达5次，请5分钟后重试');
+            } else {
+                showAlert(`密码不正确，还剩 ${5 - loginAttempts} 次机会`);
+            }
+            return;
+        }
+        currentUser = data.user;
+        loginAttempts = 0;
+        lockUntil = 0;
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+        // 加载数据
+        try {
+            const imgs = await loadHonorImages();
+            renderHonorCarousel(imgs);
+            window.teachersData = await loadTeachers();
+            renderTeacherBySubject('小学');
+            document.querySelector('.nav-item[data-nav="ceping"]').classList.add('active');
+            showPage('ceping');
+        } catch (err) {
+            showAlert('数据加载失败：' + err.message);
+        }
+    }
+
+    async function doRegister() {
+        const phone = document.getElementById('loginPhone').value.trim();
+        const password = document.getElementById('loginPwd').value;
+        if (!phone || !password) { showAlert('请填写手机号和密码后再点击注册'); return; }
+        if (!/^\d{11}$/.test(phone)) { showAlert('请输入11位手机号'); return; }
+        const email = `${phone}@example.com`;
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+            showAlert('注册失败：' + error.message);
+            return;
+        }
+        currentUser = data.user;
+        // 保存电话回传记录
+        await savePhoneRecord(phone, '用户注册', 'register');
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+        const imgs = await loadHonorImages();
+        renderHonorCarousel(imgs);
+        window.teachersData = await loadTeachers();
+        renderTeacherBySubject('小学');
+        document.querySelector('.nav-item[data-nav="ceping"]').classList.add('active');
+        showPage('ceping');
+    }
+
+    // ---------- 页面切换 ----------
+    const pages = { ceping: document.getElementById('cepingPage'), reserve: document.getElementById('reservePage'), my: document.getElementById('myPage') };
+    function showPage(pageId) {
+        Object.values(pages).forEach(p => p.classList.remove('active-page'));
+        pages[pageId].classList.add('active-page');
+        if (pageId === 'reserve') {
+            const activeSub = document.querySelector('.subject-filter-btn.active-sub')?.dataset.sub || '小学';
+            renderTeacherBySubject(activeSub);
+        }
+    }
+
+    // ---------- 升学分析提交 ----------
+    document.getElementById('submitAnalysisBtn').addEventListener('click', async () => {
+        const province = document.getElementById('provinceSelect').value;
+        const city = document.getElementById('citySelect').value;
+        const stage = document.getElementById('stageSelect').value;
+        const target = document.getElementById('autoTarget').value;
+        const score = parseInt(document.getElementById('scoreInput').value);
+        const extra = document.getElementById('subjectGroup').style.display === 'block' ? document.getElementById('subjectSelect').value : '';
+        if (!province || !stage || isNaN(score)) { showAlert('请完整填写信息'); return; }
+        if (stage !== '高中' && !city) { showAlert('请选择城市/区'); return; }
+
+        const loadingModal = showLoading('正在调用教育部数据...');
+        let locationInfo = stage === '高中' ? `省份：${province}` : `省份：${province}，城市：${city}`;
+        let lineDescription = '';
+        if (stage === '高中' && target === '高考') {
+            if (extra === '理综') lineDescription = '2026年该省理科本科线预测为380分。';
+            else if (extra === '文综') lineDescription = '2026年该省文科本科线预测为450分。';
+            else if (extra === '艺体') lineDescription = '艺术体育类本科线预测：播音389、美术366、音乐343、舞蹈320、体育382。';
+            else lineDescription = '2026年本科线预测：理科380分，文科450分。';
+        } else if (stage === '初中' && target === '中考') {
+            lineDescription = '2026年贵阳市普通高中录取线预测为420分。';
+        } else if (stage === '小学' && target === '小升初') {
+            lineDescription = '请根据当地小升初政策推荐初中。';
+        }
+
+        const userPrompt = `${locationInfo}，分数：${score}分${extra ? '，选科：' + extra : ''}。${lineDescription}请根据分数是否过线推荐冲刺、稳妥、保底各5所学校（附带专业），输出JSON格式。`;
+
+        try {
+            const adviceText = await callDoubao([{ role: 'system', content: '你是一位资深升学规划专家。' }, { role: 'user', content: userPrompt }]);
+            let data;
+            try {
+                const jsonMatch = adviceText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) data = JSON.parse(jsonMatch[0]);
+                else data = { advice: adviceText, schools: null };
+            } catch (e) {
+                data = { advice: adviceText, schools: null };
+            }
+            // 保存到数据库
+            await saveShengxueHistory({ province, city, stage, target, score, extra, advice: data.advice });
+            hideLoading();
+            // 显示浮窗
+            const modal = document.createElement('div');
+            modal.className = 'floating-modal';
+            modal.innerHTML = `<div class="modal-glass"><i class="fas fa-times-circle" id="closeModal" style="float:right; font-size:22px; cursor:pointer"></i><h4>🎓 升学规划建议</h4><p style="margin:12px 0">${data.advice.replace(/\n/g, '<br>')}</p><div id="strategyButtons"></div><input type="text" id="phoneSender" placeholder="填写电话自动发送完整版" maxlength="11" style="width:100%; padding:12px; border-radius:40px; margin-top:16px"><button id="confirmSendBtn" class="btn-primary" style="margin-top:12px" disabled>确认发送</button></div>`;
+            document.body.appendChild(modal);
+            if (data.schools) {
+                const container = modal.querySelector('#strategyButtons');
+                const strategyKeys = ['chong', 'wen', 'bao'];
+                const strategyNames = ['冲', '稳', '保'];
+                strategyKeys.forEach((key, idx) => {
+                    const schools = data.schools[key];
+                    if (schools && schools.length) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'strategy-btn';
+                        wrapper.innerHTML = `<div style="display:flex; justify-content:space-between"><strong>${strategyNames[idx]} (${schools.length}所)</strong><i class="fas fa-chevron-down expand-icon"></i></div><div class="school-list" style="display:none; margin-top:8px"></div>`;
+                        const listDiv = wrapper.querySelector('.school-list');
+                        schools.forEach(s => {
+                            const item = document.createElement('div');
+                            item.className = 'school-item';
+                            if (typeof s === 'object') {
+                                item.innerHTML = `<i class="fas fa-school"></i> ${s.学校名称 || s.name || ''}（${s.专业方向 || s.major || ''}）`;
+                            } else {
+                                item.innerHTML = `<i class="fas fa-school"></i> ${s}`;
+                            }
+                            listDiv.appendChild(item);
+                        });
+                        wrapper.addEventListener('click', () => {
+                            const isExpanded = listDiv.style.display === 'block';
+                            listDiv.style.display = isExpanded ? 'none' : 'block';
+                            wrapper.classList.toggle('expanded', !isExpanded);
+                        });
+                        container.appendChild(wrapper);
+                    }
+                });
+            } else {
+                modal.querySelector('#strategyButtons').innerHTML = '<p>（未能提取学校列表，请参考上方建议）</p>';
+            }
+            const phoneInput = modal.querySelector('#phoneSender');
+            const confirmBtn = modal.querySelector('#confirmSendBtn');
+            phoneInput.addEventListener('input', () => { confirmBtn.disabled = !/^\d{11}$/.test(phoneInput.value); });
+            confirmBtn.addEventListener('click', async () => {
+                const phoneNum = phoneInput.value;
+                if (/^\d{11}$/.test(phoneNum)) {
+                    await savePhoneRecord(phoneNum, `${province} ${stage} ${target} 分数${score}`, 'analysis');
+                    alert('电话已保存至校长端');
+                    modal.remove();
+                } else alert('请输入11位数字');
+            });
+            modal.querySelector('#closeModal').onclick = () => modal.remove();
+        } catch (err) {
+            hideLoading();
+            showAlert('分析失败：' + err.message);
+        }
+    });
+
+    // ---------- 预约 ----------
+    document.getElementById('doReserveBtn').addEventListener('click', async () => {
+        const selected = document.querySelector('input[name="selTeacher"]:checked');
+        if (!selected) { showAlert('请选择一位老师'); return; }
+        const teacher = window.teachersData.find(t => t.id == selected.value);
+        const date = document.getElementById('appointDate').value;
+        const timeSlot = document.getElementById('appointTimeSlot').value;
+        if (!date || !timeSlot) { showAlert('请选择预约日期和时段'); return; }
+        const fullTime = `${date} ${timeSlot}`;
+        await saveReserveHistory({ teacher_name: teacher.name, time: fullTime, campus: document.getElementById('campusAddr').value });
+        alert(`联系人：13027867827\n试课地址：贵阳市云岩区响叮当课后成长中心\n老师：${teacher.name}\n时间：${fullTime}`);
+        window.open('https://uri.amap.com/marker?position=106.63024,26.647661&name=响叮当课后成长中心', '_blank');
+    });
+
+    // ---------- 历史展示 ----------
+    async function showHistory(type) {
+        document.querySelectorAll('.history-container').forEach(c => c.style.display = 'none');
+        if (type === 'shengxue') {
+            const data = await getShengxueHistory();
+            document.getElementById('shengxueHistoryList').innerHTML = data.map(d => `<div class="history-item">${d.province} ${d.city || ''} ${d.stage} ${d.target} 分数${d.score}<br><small>${new Date(d.time).toLocaleString()}</small><br>建议:${d.advice.substring(0,80)}</div>`).join('') || '暂无';
+            document.getElementById('shengxueHistoryList').style.display = 'block';
+        } else if (type === 'exam') {
+            const data = await getExamHistory();
+            document.getElementById('examHistoryList').innerHTML = data.map(d => `<div class="history-item">${d.grade} ${d.subject}<br>结果:${d.result.substring(0,80)}<br><small>${new Date(d.time).toLocaleString()}</small></div>`).join('') || '暂无';
+            document.getElementById('examHistoryList').style.display = 'block';
+        } else if (type === 'reserve') {
+            const data = await getReserveHistory();
+            document.getElementById('reserveHistoryList').innerHTML = data.map(d => `<div class="history-item">老师:${d.teacher_name} 时间:${d.time}<br>校区:${d.campus}<br><small>${new Date(d.date).toLocaleString()}</small></div>`).join('') || '暂无';
+            document.getElementById('reserveHistoryList').style.display = 'block';
+        }
+    }
+
+    // ---------- 组卷测评 ----------
+    document.getElementById('startExamBtn').addEventListener('click', async () => {
+        const grade = document.getElementById('gradeSelect').value;
+        const subject = document.getElementById('subjectExamSelect').value;
+        if (!grade || !subject) return showAlert('请选择年级和科目');
+        const loadingModal = showLoading('正在组卷...');
+        const generatePrompt = `请为${grade}学生生成一份关于${subject}的测试卷，包含10道题目，直接输出题目列表：1. 题目内容\n2. 题目内容\n...`;
+        try {
+            const questionsText = await callDoubao([{ role: 'system', content: '你是一位经验丰富的学科教师。' }, { role: 'user', content: generatePrompt }]);
+            let questions = questionsText.split('\n').filter(l => l.trim() && /^\d+\./.test(l.trim()));
+            if (questions.length < 10) for (let i = questions.length; i < 10; i++) questions.push(`${i+1}. 请简述${subject}的核心知识点。`);
+            questions = questions.slice(0, 10);
+            hideLoading();
+            const modal = document.createElement('div');
+            modal.className = 'floating-modal';
+            modal.innerHTML = `<div class="modal-glass" style="max-width:95%; max-height:85vh"><h3>${grade} ${subject} 智能组卷 (10题)</h3><div id="quizContainer"></div><button id="submitQuizBtn" class="btn-primary" disabled>提交试卷</button><button id="closeQuizBtn" class="btn-outline" style="margin-top:8px">关闭</button></div>`;
+            document.body.appendChild(modal);
+            const quizContainer = modal.querySelector('#quizContainer');
+            const answerMap = new Map();
+            for (let i = 0; i < questions.length; i++) {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'quiz-question';
+                qDiv.innerHTML = `<strong>${questions[i]}</strong><textarea class="quiz-textarea" data-qid="${i}" rows="2" placeholder="请作答..." style="width:100%; margin-top:8px; border-radius:24px; padding:8px"></textarea>`;
+                quizContainer.appendChild(qDiv);
+            }
+            const checkAll = () => {
+                const all = modal.querySelectorAll('.quiz-textarea');
+                let filled = true;
+                all.forEach(t => { if (!t.value.trim()) filled = false; });
+                modal.querySelector('#submitQuizBtn').disabled = !filled;
+                all.forEach(t => answerMap.set(t.dataset.qid, t.value));
+            };
+            quizContainer.addEventListener('input', checkAll);
+            modal.querySelector('#submitQuizBtn').addEventListener('click', async () => {
+                const answers = []; for (let i = 0; i < questions.length; i++) answers.push(answerMap.get(i.toString()) || '');
+                let gradingPrompt = `请批改以下${subject}试卷答案，给出每道题的得分和总体正确率及学习建议。\n\n题目与答案：\n`;
+                for (let i = 0; i < questions.length; i++) gradingPrompt += `${questions[i]}\n学生答案：${answers[i]}\n\n`;
+                const correction = await callDoubao([{ role: 'system', content: '你是一位严谨的学科教师。' }, { role: 'user', content: gradingPrompt }]);
+                const resultModal = document.createElement('div'); resultModal.className = 'floating-modal'; resultModal.innerHTML = `<div class="modal-glass"><h4>📖 批改结果</h4><p>${correction.replace(/\n/g, '<br>')}</p><button class="btn-primary" id="closeResult">关闭</button></div>`;
+                document.body.appendChild(resultModal);
+                resultModal.querySelector('#closeResult').onclick = () => resultModal.remove();
+                await saveExamHistory({ grade, subject, result: correction, suggestion: '详见批改结果' });
+                modal.remove();
+            });
+            modal.querySelector('#closeQuizBtn').onclick = () => modal.remove();
+        } catch (error) {
+            hideLoading();
+            showAlert('组卷失败：' + error.message);
+        }
+    });
+
+    // ---------- 初始化页面元素 ----------
+    function initPage() {
+        // 完整的全国城市数据
+        const chinaData = {
+            "北京市": ["东城区", "西城区", "朝阳区", "丰台区", "石景山区", "海淀区", "门头沟区", "房山区", "通州区", "顺义区", "昌平区", "大兴区", "怀柔区", "平谷区", "密云区", "延庆区"],
+            "天津市": ["和平区", "河东区", "河西区", "南开区", "河北区", "红桥区", "东丽区", "西青区", "津南区", "北辰区", "武清区", "宝坻区", "滨海新区", "宁河区", "静海区", "蓟州区"],
+            "上海市": ["黄浦区", "徐汇区", "长宁区", "静安区", "普陀区", "虹口区", "杨浦区", "闵行区", "宝山区", "嘉定区", "浦东新区", "金山区", "松江区", "青浦区", "奉贤区", "崇明区"],
+            "重庆市": ["万州区", "涪陵区", "渝中区", "大渡口区", "江北区", "沙坪坝区", "九龙坡区", "南岸区", "北碚区", "綦江区", "大足区", "渝北区", "巴南区", "黔江区", "长寿区", "江津区", "合川区", "永川区", "南川区", "璧山区", "铜梁区", "潼南区", "荣昌区", "开州区", "梁平区", "武隆区"],
+            "河北省": ["石家庄市", "唐山市", "秦皇岛市", "邯郸市", "邢台市", "保定市", "张家口市", "承德市", "沧州市", "廊坊市", "衡水市"],
+            "山西省": ["太原市", "大同市", "阳泉市", "长治市", "晋城市", "朔州市", "晋中市", "运城市", "忻州市", "临汾市", "吕梁市"],
+            "辽宁省": ["沈阳市", "大连市", "鞍山市", "抚顺市", "本溪市", "丹东市", "锦州市", "营口市", "阜新市", "辽阳市", "盘锦市", "铁岭市", "朝阳市", "葫芦岛市"],
+            "吉林省": ["长春市", "吉林市", "四平市", "辽源市", "通化市", "白山市", "松原市", "白城市", "延边朝鲜族自治州"],
+            "黑龙江省": ["哈尔滨市", "齐齐哈尔市", "鸡西市", "鹤岗市", "双鸭山市", "大庆市", "伊春市", "佳木斯市", "七台河市", "牡丹江市", "黑河市", "绥化市", "大兴安岭地区"],
+            "江苏省": ["南京市", "无锡市", "徐州市", "常州市", "苏州市", "南通市", "连云港市", "淮安市", "盐城市", "扬州市", "镇江市", "泰州市", "宿迁市"],
+            "浙江省": ["杭州市", "宁波市", "温州市", "嘉兴市", "湖州市", "绍兴市", "金华市", "衢州市", "舟山市", "台州市", "丽水市"],
+            "安徽省": ["合肥市", "芜湖市", "蚌埠市", "淮南市", "马鞍山市", "淮北市", "铜陵市", "安庆市", "黄山市", "滁州市", "阜阳市", "宿州市", "六安市", "亳州市", "池州市", "宣城市"],
+            "福建省": ["福州市", "厦门市", "莆田市", "三明市", "泉州市", "漳州市", "南平市", "龙岩市", "宁德市"],
+            "江西省": ["南昌市", "景德镇市", "萍乡市", "九江市", "新余市", "鹰潭市", "赣州市", "吉安市", "宜春市", "抚州市", "上饶市"],
+            "山东省": ["济南市", "青岛市", "淄博市", "枣庄市", "东营市", "烟台市", "潍坊市", "济宁市", "泰安市", "威海市", "日照市", "临沂市", "德州市", "聊城市", "滨州市", "菏泽市"],
+            "河南省": ["郑州市", "开封市", "洛阳市", "平顶山市", "安阳市", "鹤壁市", "新乡市", "焦作市", "濮阳市", "许昌市", "漯河市", "三门峡市", "南阳市", "商丘市", "信阳市", "周口市", "驻马店市", "济源市"],
+            "湖北省": ["武汉市", "黄石市", "十堰市", "宜昌市", "襄阳市", "鄂州市", "荆门市", "孝感市", "荆州市", "黄冈市", "咸宁市", "随州市", "恩施土家族苗族自治州", "仙桃市", "潜江市", "天门市", "神农架林区"],
+            "湖南省": ["长沙市", "株洲市", "湘潭市", "衡阳市", "邵阳市", "岳阳市", "常德市", "张家界市", "益阳市", "郴州市", "永州市", "怀化市", "娄底市", "湘西土家族苗族自治州"],
+            "广东省": ["广州市", "韶关市", "深圳市", "珠海市", "汕头市", "佛山市", "江门市", "湛江市", "茂名市", "肇庆市", "惠州市", "梅州市", "汕尾市", "河源市", "阳江市", "清远市", "东莞市", "中山市", "潮州市", "揭阳市", "云浮市"],
+            "广西壮族自治区": ["南宁市", "柳州市", "桂林市", "梧州市", "北海市", "防城港市", "钦州市", "贵港市", "玉林市", "百色市", "贺州市", "河池市", "来宾市", "崇左市"],
+            "海南省": ["海口市", "三亚市", "三沙市", "儋州市", "五指山市", "琼海市", "文昌市", "万宁市", "东方市", "定安县", "屯昌县", "澄迈县", "临高县", "白沙黎族自治县", "昌江黎族自治县", "乐东黎族自治县", "陵水黎族自治县", "保亭黎族苗族自治县", "琼中黎族苗族自治县"],
+            "四川省": ["成都市", "自贡市", "攀枝花市", "泸州市", "德阳市", "绵阳市", "广元市", "遂宁市", "内江市", "乐山市", "南充市", "眉山市", "宜宾市", "广安市", "达州市", "雅安市", "巴中市", "资阳市", "阿坝藏族羌族自治州", "甘孜藏族自治州", "凉山彝族自治州"],
+            "贵州省": ["贵阳市", "六盘水市", "遵义市", "安顺市", "毕节市", "铜仁市", "黔西南布依族苗族自治州", "黔东南苗族侗族自治州", "黔南布依族苗族自治州"],
+            "云南省": ["昆明市", "曲靖市", "玉溪市", "保山市", "昭通市", "丽江市", "普洱市", "临沧市", "楚雄彝族自治州", "红河哈尼族彝族自治州", "文山壮族苗族自治州", "西双版纳傣族自治州", "大理白族自治州", "德宏傣族景颇族自治州", "怒江傈僳族自治州", "迪庆藏族自治州"],
+            "西藏自治区": ["拉萨市", "日喀则市", "昌都市", "林芝市", "山南市", "那曲市", "阿里地区"],
+            "陕西省": ["西安市", "铜川市", "宝鸡市", "咸阳市", "渭南市", "延安市", "汉中市", "榆林市", "安康市", "商洛市"],
+            "甘肃省": ["兰州市", "嘉峪关市", "金昌市", "白银市", "天水市", "武威市", "张掖市", "平凉市", "酒泉市", "庆阳市", "定西市", "陇南市", "临夏回族自治州", "甘南藏族自治州"],
+            "青海省": ["西宁市", "海东市", "海北藏族自治州", "黄南藏族自治州", "海南藏族自治州", "果洛藏族自治州", "玉树藏族自治州", "海西蒙古族藏族自治州"],
+            "宁夏回族自治区": ["银川市", "石嘴山市", "吴忠市", "固原市", "中卫市"],
+            "新疆维吾尔自治区": ["乌鲁木齐市", "克拉玛依市", "吐鲁番市", "哈密市", "昌吉回族自治州", "博尔塔拉蒙古自治州", "巴音郭楞蒙古自治州", "阿克苏地区", "克孜勒苏柯尔克孜自治州", "喀什地区", "和田地区", "伊犁哈萨克自治州", "塔城地区", "阿勒泰地区", "石河子市", "阿拉尔市", "图木舒克市", "五家渠市", "北屯市", "铁门关市", "双河市", "可克达拉市", "昆玉市"],
+            "内蒙古自治区": ["呼和浩特市", "包头市", "乌海市", "赤峰市", "通辽市", "鄂尔多斯市", "呼伦贝尔市", "巴彦淖尔市", "乌兰察布市", "兴安盟", "锡林郭勒盟", "阿拉善盟"]
+        };
+        
+        const provinceSelect = document.getElementById('provinceSelect');
+        // 填充省份下拉框
+        for (let province in chinaData) {
+            let opt = document.createElement('option');
+            opt.value = province;
+            opt.innerText = province;
+            provinceSelect.appendChild(opt);
+        }
+        
+        // 省份切换时更新城市列表
+        provinceSelect.addEventListener('change', () => {
+            const province = provinceSelect.value;
+            const citySelect = document.getElementById('citySelect');
+            if (!province) {
+                citySelect.style.display = 'none';
+                citySelect.innerHTML = '<option value="">请先选择省份</option>';
+                document.getElementById('submitAnalysisBtn').style.display = 'none';
+                return;
+            }
+            const cities = chinaData[province] || [];
+            citySelect.innerHTML = '<option value="">请选择城市/区</option>';
+            cities.forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c;
+                opt.innerText = c;
+                citySelect.appendChild(opt);
+            });
+            citySelect.style.display = 'block';
+            document.getElementById('submitAnalysisBtn').style.display = 'block';
+        });
+        
+        // 年级下拉
+        const gradeSelect = document.getElementById('gradeSelect');
+        const grades = ['一年级','二年级','三年级','四年级','五年级','六年级','初一','初二','初三','高一','高二','高三'];
+        grades.forEach(g => { let opt = document.createElement('option'); opt.value = g; opt.innerText = g; gradeSelect.appendChild(opt); });
+        gradeSelect.addEventListener('change', () => {
+            document.getElementById('startExamBtn').style.display = gradeSelect.value ? 'block' : 'none';
+        });
+        
+        // 科目下拉
+        const allSubjects = ['语文','数学','英语','物理','化学','生物','历史','地理','政治'];
+        const subjectExamSelect = document.getElementById('subjectExamSelect');
+        allSubjects.forEach(s => { let opt = document.createElement('option'); opt.value = s; opt.innerText = s; subjectExamSelect.appendChild(opt); });
+        
+        // 学段联动：升学目标自动填充
+        const stageSelect = document.getElementById('stageSelect');
+        const autoTarget = document.getElementById('autoTarget');
+        const subjectGroupDiv = document.getElementById('subjectGroup');
+        stageSelect.addEventListener('change', () => {
+            const val = stageSelect.value;
+            if (val === '小学') autoTarget.value = '小升初';
+            else if (val === '初中') autoTarget.value = '中考';
+            else if (val === '高中') autoTarget.value = '高考';
+            else autoTarget.value = '';
+            subjectGroupDiv.style.display = (autoTarget.value === '高考') ? 'block' : 'none';
+        });
+    }
+
+    // 校长端窗口
+    function openAdminWindow() {
+        const adminHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>校长端</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"><style>body{background:linear-gradient(145deg,#c0e0ff,#d9efff);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:20px}.glass-card{background:rgba(255,255,245,0.45);backdrop-filter:blur(18px);border-radius:32px;padding:20px;margin-bottom:24px}.btn-primary,.btn-outline{background:rgba(44,125,160,0.85);border:none;border-radius:60px;padding:10px 18px;color:#fff;cursor:pointer;margin:4px}.btn-outline{background:rgba(255,255,245,0.8);color:#2c7da0;border:1px solid #2c7da0}.admin-item{background:rgba(255,255,245,0.6);border-radius:24px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:12px}.teacher-avatar{width:48px;height:48px;border-radius:30px}input{background:rgba(255,255,245,0.8);border-radius:40px;padding:8px 14px;width:100%;margin:8px 0}</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>const supabase = window.supabase.createClient('${SUPABASE_URL}', '${SUPABASE_KEY}'); async function loadPhoneRecords(){const {data}=await supabase.from('phone_records').select('*').order('time',{ascending:false});document.getElementById('phoneRecordsList').innerHTML=data.map(r=>'<div class="admin-item"><i class="fas fa-phone"></i> '+r.phone+' | '+new Date(r.time).toLocaleString()+'<br><small>'+r.detail+' ('+r.source+')</small></div>').join('')||'暂无';} async function loadTeachers(){const {data}=await supabase.from('teachers').select('*');document.getElementById('teacherManagerList').innerHTML=data.map(t=>'<div class="admin-item"><img src="'+t.avatar_url+'" class="teacher-avatar"><div><strong>'+t.name+'</strong> ('+t.subject+')<br><small>'+t.intro+'</small></div><button data-id="'+t.id+'" class="editTeacher btn-outline">编辑</button><button data-id="'+t.id+'" class="delTeacher btn-outline">删除</button></div>').join('');document.querySelectorAll('.delTeacher').forEach(btn=>btn.onclick=async()=>{await supabase.from('teachers').delete().eq('id',btn.dataset.id);loadTeachers();});document.querySelectorAll('.editTeacher').forEach(btn=>btn.onclick=async()=>{const newName=prompt('新姓名');if(newName){await supabase.from('teachers').update({name:newName}).eq('id',btn.dataset.id);loadTeachers();}});}async function loadHonors(){const {data}=await supabase.from('honor_images').select('*').order('sort_order');document.getElementById('honorManagerList').innerHTML=data.map((url,idx)=>'<div class="admin-item"><img src="'+url.image_url+'" width="60"><button data-idx="'+url.id+'" class="delHonor btn-outline">删除</button></div>').join('');document.querySelectorAll('.delHonor').forEach(btn=>btn.onclick=async()=>{await supabase.from('honor_images').delete().eq('id',btn.dataset.idx);loadHonors();});}document.getElementById('addTeacherBtn').onclick=async()=>{const name=prompt('教师姓名');const sub=prompt('阶段(小学/初中/高中)');if(name&&sub){await supabase.from('teachers').insert([{name,subject:sub,intro:'优秀教师',avatar_url:'https://randomuser.me/api/portraits/lego/1.jpg'}]);loadTeachers();}};document.getElementById('addHonorBtn').onclick=async()=>{const url=prompt('图片URL');if(url){await supabase.from('honor_images').insert([{image_url:url}]);loadHonors();}};document.getElementById('closeWin').onclick=()=>window.close();loadPhoneRecords();loadTeachers();loadHonors();</script></head><body><div class="glass-card"><h3>校长端 · 数据管理</h3><button id="closeWin" class="btn-outline">关闭</button></div><div class="glass-card"><h4>电话记录</h4><div id="phoneRecordsList"></div></div><div class="glass-card"><h4>教师管理 <button id="addTeacherBtn" class="btn-outline">+新增</button></h4><div id="teacherManagerList"></div></div><div class="glass-card"><h4>荣誉墙 <button id="addHonorBtn" class="btn-outline">+新增URL</button></h4><div id="honorManagerList"></div></div></body></html>`;
+        const win = window.open();
+        win.document.write(adminHtml);
+        win.document.close();
+    }
+
+    // 绑定事件
+    document.getElementById('loginBtn').addEventListener('click', doLogin);
+    document.getElementById('registerBtn').addEventListener('click', doRegister);
+    document.querySelectorAll('.nav-item').forEach(nav => nav.addEventListener('click', () => showPage(nav.dataset.nav)));
+    document.getElementById('myFloatBtn').onclick = () => showPage('my');
+    document.getElementById('closeMyPage').onclick = () => showPage('ceping');
+    document.querySelectorAll('.history-trigger').forEach(trigger => trigger.addEventListener('click', (e) => showHistory(e.currentTarget.dataset.type)));
+    document.querySelectorAll('.subject-filter-btn').forEach(btn => btn.addEventListener('click', () => {
+        document.querySelectorAll('.subject-filter-btn').forEach(b => b.classList.remove('active-sub'));
+        btn.classList.add('active-sub');
+        renderTeacherBySubject(btn.dataset.sub);
+    }));
+    document.querySelector('.subject-filter-btn').classList.add('active-sub');
+
+    initPage();
+</script>
+</body>
+</html>
